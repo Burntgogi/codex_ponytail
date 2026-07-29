@@ -87,4 +87,4 @@ git ls-remote --symref https://github.com/DietrichGebert/ponytail.git HEAD
 
 2026-07-29 观察到 `ponytail-activate.js`、`ponytail-subagent.js`、`ponytail-mode-tracker.js`，并从实际 Codex cache、新 App/CLI 会话验证。仅用于解释旧决策；当前调查与审查始终优先。
 
-若本压缩版存在歧义或缺项，查阅英文规范源并修正本版；不要用韩文译本补充语义。
+若本压缩版存在歧义或缺项，先查英文规范源对应章节；仅当问题跨章节，或安全、批准、rollback 仍不明确时才读英文全文。修正本版，不要用韩文译本补充语义。
