@@ -17,7 +17,7 @@ This is historical evidence, not a permanent installation target.
 The durable model is: investigate the current Ponytail repository and local
 Codex interface, review the candidate and every hook, obtain approval for the
 exact user-level change, then pin and verify a full commit SHA. Never install a
-symbolic `main` reference by default.
+symbolic `main` reference as the plugin source.
 
 This repository neither copies Ponytail source nor distributes an installer.
 It is not affiliated with the upstream project.
