@@ -17,6 +17,10 @@
   show the exact paths, current state, backup target, proposed diff, hook scope,
   ordered current-native actions and expected transitions, per-step stops, and
   rollback impact; obtain explicit approval.
+- Before any marketplace mutation, verify that the user's actual shell can
+  launch an interactive Codex CLI. Under the behavior verified on 2026-07-30,
+  App installation still required CLI `/hooks` for user review and trust; do
+  not assume the App can approve hooks unless current product evidence says so.
 - Ponytail `4.8.4`, Codex CLI `0.145.0`, and commit
   `16f29800fd2681bdf24f3eb4ccffe38be3baec6b` are historical evidence only.
   Inspect current upstream and local Codex behavior before proposing a change.
@@ -25,6 +29,9 @@
   definitions. Run untrusted tests only in an appropriately isolated,
   credential-free environment or after explicit approval. Install only the same
   reviewed SHA; never use symbolic `main` as the source reference.
+- Marketplace registration is not plugin installation. Require the installed
+  Ponytail entry itself to report both `installed: true` and `enabled: true`;
+  do not infer installation from marketplace visibility or `available`.
 - Stop and report on changed assumptions, failed review, conflicting user
   state, or unavailable interactive trust/restart. Never silently fall back to
   the historical commit.

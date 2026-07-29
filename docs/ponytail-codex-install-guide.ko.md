@@ -36,18 +36,28 @@
 
 - 설치된 Codex 버전과 현재 plugin/marketplace 도움말
 - 설정된 marketplace와 설치된 plugin
+- 사용자의 실제 shell에서 `codex --version`과 대화형 `codex` 세션이 모두
+  실행되는지 여부
 - Git과 현재 hook이 요구하는 runtime
 - 현재 릴리스가 보고하거나 사용하는 실제 사용자 수준 Codex 경로
 
 작은 조사 명령은 서로 독립적으로 실행할 수 있다.
 
 ```powershell
+Get-Command codex
 codex --version
 codex plugin --help
 codex plugin marketplace --help
-codex plugin list
+codex plugin marketplace list --json
+codex plugin list --json
 git ls-remote --symref https://github.com/DietrichGebert/ponytail.git HEAD
 ```
+
+`codex` 경로를 찾는 것만으로는 충분하지 않다. 대화형 CLI를 실행하여 입력을
+받는지 확인한다. `Access is denied` 또는 다른 시작 오류가 나면 marketplace를
+바꾸기 전에 중단한다. 2026-07-30 Codex CLI `0.145.0` 환경에서는 desktop App이
+plugin을 설치할 수 있었지만 hook review control을 제공하지 않아 CLI가 hook
+신뢰 완료에 필요했다. 이를 영구 동작으로 가정하지 말고 현재 App/CLI를 재확인한다.
 
 과거 사례의 명령, 경로, manifest field, hook 수 또는 runtime이 현재에도
 같다고 가정하지 않는다.
@@ -63,6 +73,10 @@ detached 상태로 checkout하고 HEAD 일치를 확인한 다음 최소한 다�
 - 선언된 모든 hook, 명령, 실행 파일, timeout, 권한, filesystem 범위 및
   network 동작
 - 업스트림 테스트 정의, 명령과 결과
+
+업스트림 전체 suite와 Codex 전용 manifest/hook/plugin 검사의 명령·결과를
+분리하여 기록한다. focused Codex 검사만으로 전체 suite 통과를 대신하지 않으며,
+전체 suite 통과도 hook 검토를 대신하지 않는다.
 
 실행 전 테스트 정의를 먼저 검토한다. 신뢰하지 않는 테스트는 credential이 없는
 일회용 환경에서 filesystem과 network 범위를 검토한 필요에 한정하여 실행한다.
@@ -116,6 +130,37 @@ detached 상태로 checkout하고 HEAD 일치를 확인한 다음 최소한 다�
 설치된 Codex 버전이 제공하는 native marketplace/plugin 명령만 사용한다.
 현재 도움말과 다르면 과거 명령을 복사하지 않는다.
 
+다음 상태를 구분한다.
+
+1. 고정된 source 준비
+2. marketplace 등록 확인
+3. CLI 또는 App에서 plugin 실제 설치
+4. `installed: true`와 `enabled: true` 확인
+5. 설치 cache의 SHA/content와 hook 재검토
+6. CLI `/hooks`에서 사용자 검토와 신뢰
+7. App 재시작 또는 새 작업에서 activation 검증
+
+marketplace 항목은 plugin을 발견 가능하게 할 뿐 설치하지 않는다. `available`
+array가 비어 있는 것도 설치 판정이 아니다. CLI 경로에서는 승인 후 현재 도움말로
+문법을 확인하며, 2026-07-30 확인한 interface는 다음 독립 명령을 사용했다.
+
+```powershell
+codex plugin marketplace list --json
+codex plugin add ponytail@personal --json
+codex plugin list --json
+```
+
+`ponytail@personal`의 `installed` 항목에서 `installed: true`와 `enabled: true`를
+모두 확인한다. 승인한 marketplace 이름이 다르면 검토한 identifier를 사용한다.
+
+App 경로에서는 marketplace 설정 후 desktop App을 재시작하고 **Plugins →
+Personal**에서 plugin의 `+` 설치 동작을 선택한다. 그런 다음 CLI로 돌아가 hook을
+검토한다. App/CLI의 설치 동작은 섞지 않지만, 어느 설치 경로든 위 날짜가 붙은
+동작에서는 CLI `/hooks`가 필요하다. marketplace 표시를 설치로 해석하지 않는다.
+현재 [plugin 설치](https://learn.chatgpt.com/docs/plugins)와
+[local marketplace](https://developers.openai.com/plugins/build/plugins) 문서를
+다시 확인하여 동작을 정한다.
+
 설치 source reference에는 검토한 전체 SHA를 사용한다. 자동 업데이트,
 benchmark 도구, telemetry 또는 별도 router를 추가하지 않는다. Ponytail이
 이미 다른 revision으로 설치되어 있으면 변경 전에 제거·재설치와 hook 재신뢰
@@ -125,8 +170,19 @@ benchmark 도구, telemetry 또는 별도 router를 추가하지 않는다. Pony
 ### 6. hook을 대화형으로 검토하고 신뢰
 
 review clone이나 설치 응답만 믿지 말고 실제 설치 cache의 hook을 다시 확인한다.
-Codex의 대화형 trust interface에서 사용자에게 이미 보여 준 명령만 승인한다.
-이 trust boundary를 자동화하거나 우회하지 않는다.
+
+> **현재 hook trust boundary(2026-07-30, Codex CLI `0.145.0`에서 검증):**
+> [공식 Codex hook 안내](https://learn.chatgpt.com/docs/hooks)는 CLI `/hooks`로
+> hook을 검토하고 신뢰하도록 설명한다. 관찰한 desktop App에는 동등한 hook
+> review control이 없었다. App 설치가 hook을 자동 신뢰하지 않아 bundled skill을
+> 찾을 수 있어도 신뢰하지 않은 lifecycle hook은 건너뛰었다. CLI를 실행하고
+> `/hooks`에서 설치 cache 정의를 확인한 뒤 사용자가 검토한 명령만 신뢰한다.
+> 그다음 App을 재시작하거나 새 작업을 열어 activation을 확인한다. 이 날짜가 붙은
+> 기록을 적용하기 전에 현재 제품 동작을 다시 확인한다.
+
+trust boundary를 자동화하거나 우회하지 않는다. Codex는 현재 hook 정의 hash에
+신뢰를 기록하므로 새 hook 또는 변경된 hook/hash는 현재 지원 interface에서 다시
+검토하고 신뢰해야 한다.
 
 과거 사례에는 `SessionStart`, `SubagentStart`, `UserPromptSubmit` lifecycle
 group만 있었다. 각각 plugin root 아래 Node.js 스크립트 하나를 5초 timeout으로
@@ -138,20 +194,26 @@ group만 있었다. 각각 plugin root 아래 Node.js 스크립트 하나를 5�
 다음 증거를 확인해야 설치가 완료된다.
 
 - marketplace 설정이 유효하고 무관한 항목이 그대로임
-- 의도한 Ponytail 항목이 정확히 하나이며 활성화됨
+- `codex plugin list --json`의 `installed`에 의도한 Ponytail 항목이 정확히
+  하나이며, `available`과 무관하게 `installed: true`, `enabled: true`임
 - source URL과 전체 SHA가 검토한 candidate와 일치함
 - 설치 manifest version과 cache source의 provenance/content가 candidate와
   일치함. Git metadata가 있으면 HEAD를 사용하고, 없으면 검증된 설치 metadata와
   검토·설치된 manifest, hook 및 source file hash를 비교함
 - 설치된 hook 집합과 스크립트가 사용자 승인 내용과 일치함
-- 새 CLI 세션과 완전히 재시작한 Codex App에서 검토한 버전의 명시적 activation
-  marker 또는 기록 가능한 hook 실행 증거가 나타남
-- 검토한 버전에서 예상한 `@ponytail`, `@ponytail-review`, `@ponytail-help`를
-  찾을 수 있음
+- Ponytail `4.8.4`에서는 새 CLI 세션과 완전히 재시작한 Codex App에 정확히
+  `PONYTAIL MODE ACTIVE — level: full`이 나타나고 `@ponytail`을 찾을 수 있음.
+  이후 candidate에서는 두 surface에 검토한 명시적 marker 또는 기록 가능한 hook
+  실행 증거가 나타남
+- 검토한 버전에서 예상한 `@ponytail-review`, `@ponytail-help`를 찾을 수 있음
 - Superpowers 및 무관한 모든 plugin의 이전 상태가 유지됨
 
 설치 증명만을 위해 `@ponytail-gain`, benchmark, telemetry 또는 불필요한 하위
 에이전트를 실행하지 않는다.
+
+Ponytail `4.8.4`에서는 위 정확한 marker가 필수이며 동등한 증거로 대신하지
+않는다. 이후 version에서도 이 문구를 가정하지 말고 candidate의 실제 marker를
+기록한다.
 
 ### 8. rollback 및 update 정책 기록
 
@@ -185,6 +247,11 @@ Ponytail과 Superpowers는 서로 다른 문제를 해결하며 함께 사용할
 사용했다. 관찰한 hook script는 `ponytail-activate.js`,
 `ponytail-subagent.js`, `ponytail-mode-tracker.js`였다. 실제 Codex cache를
 검증한 다음 새 App과 CLI 세션에서도 확인했다.
+
+별도 2026-07-30 Windows 확인에서는 WindowsApps에서 발견한 `codex.exe`가
+`Access is denied`를 반환해 작동하는 App-bundled CLI로 `/hooks`를 열어야 했다.
+그 `.plugin-appserver\codex.exe` 위치는 내부 구현 detail이지 재사용할 설치 경로가
+아니다. hard-code하지 말고 현재 작동하는 CLI를 찾아 검증한다.
 
 이 세부사항은 당시 결정을 설명할 뿐, 같은 layout을 재현하라는 지침이 아니다.
 항상 현재 상태 조사와 검토가 먼저다.
