@@ -48,7 +48,7 @@ codex --version
 codex plugin --help
 codex plugin marketplace --help
 codex plugin list
-git ls-remote https://github.com/DietrichGebert/ponytail.git
+git ls-remote --symref https://github.com/DietrichGebert/ponytail.git HEAD
 ```
 
 Do not assume that a command, path, manifest field, hook count, or runtime from
@@ -56,16 +56,25 @@ the historical case remains current.
 
 ### 2. Compare before selecting a revision
 
-Compare current upstream behavior with the historical case. Review at least:
+Choose a tentative candidate from a current release/tag or the default-branch
+HEAD, record why it was chosen, and resolve it to a full immutable SHA first.
+Check out exactly that SHA in detached state and verify the checkout's HEAD
+before reviewing it. Review at least:
 
 - changes since the historical SHA;
 - the current plugin manifest and source layout;
 - every declared hook, command, executable, timeout, permission, filesystem
   scope, and network action; and
-- the upstream test command and its result.
+- the upstream test definitions, command, and result.
 
-After review, resolve the chosen revision to a full immutable commit SHA.
-Never store symbolic `main` as the installed plugin source reference.
+Inspect test definitions before execution. Run untrusted tests only in a
+disposable, credential-free environment whose filesystem and network scope are
+limited to reviewed needs. If that isolation is unavailable or a test needs
+broader access, include its exact command and effects in the approval proposal
+and do not run it before approval.
+
+After review, install the same verified SHA. Never store symbolic `main` as the
+installed plugin source reference.
 
 The historical installation needed a local personal marketplace because
 upstream's nested marketplace entry used `ref: main`; pinning only the outer
@@ -82,7 +91,8 @@ Stop and report instead of adapting silently if:
   changed;
 - hook types, commands, executables, permissions, filesystem scope, network
   behavior, or timeouts materially differ from the reviewed case;
-- upstream tests fail or their purpose cannot be understood;
+- upstream tests fail, cannot be understood, or cannot be run with an approved
+  and appropriately isolated scope;
 - an existing marketplace entry conflicts with the proposed source;
 - the edit overlaps unreviewed user changes; or
 - interactive hook trust or a required App/CLI restart cannot be completed.
@@ -99,7 +109,9 @@ plugin installation or removal, or hook trust change, show the user:
 - the existing relevant content;
 - a non-overwriting backup target and the proposed minimal diff;
 - the upstream URL and reviewed full SHA;
-- every hook command, executable, timeout, permission, and side effect; and
+- every hook command, executable, timeout, permission, and side effect;
+- the ordered native commands and UI actions derived from current help, with
+  expected state transitions and a stop condition for each; and
 - the rollback action and its effect on other plugins.
 
 Obtain explicit approval for that scope. Preserve unrelated marketplace
@@ -114,6 +126,8 @@ The installed source reference must be the reviewed full SHA. Do not enable
 automatic updates, install benchmark tooling, add telemetry, or introduce a
 separate router. If Ponytail is already installed at another revision, disclose
 the removal/reinstallation and hook re-trust impact before changing it.
+If it already matches the reviewed candidate and all verification passes, do
+not reinstall it.
 
 ### 6. Review and trust hooks interactively
 
@@ -136,9 +150,13 @@ Installation is complete only when evidence shows that:
   unchanged;
 - exactly one intended Ponytail entry is enabled;
 - its source URL and full SHA match the reviewed candidate;
-- the installed manifest version and cached Git HEAD match that candidate;
+- the installed manifest version and cached source provenance/content match
+  that candidate: use Git HEAD when present, otherwise verified installation
+  metadata plus hashes of the reviewed and installed manifest, hook, and source
+  files;
 - the installed hook set and scripts match what the user approved;
-- a fresh CLI session and a fully restarted Codex App activate Ponytail;
+- a fresh CLI session and a fully restarted Codex App show the reviewed
+  version's explicit activation marker or other recorded hook-produced evidence;
 - `@ponytail`, `@ponytail-review`, and `@ponytail-help` are discoverable as
   expected by the reviewed version; and
 - Superpowers and all unrelated plugins retain their previous state.

@@ -23,14 +23,16 @@ codex --version
 codex plugin --help
 codex plugin marketplace --help
 codex plugin list
-git ls-remote https://github.com/DietrichGebert/ponytail.git
+git ls-remote --symref https://github.com/DietrichGebert/ponytail.git HEAD
 ```
 
 不得假定历史命令、路径、字段、hook 数或 runtime 仍有效。
 
 ### 2. 审查候选
 
-比较历史 SHA 之后的 diff；审查当前 manifest/layout、每个 hook 的命令、可执行文件、timeout、权限、文件范围、网络行为；理解并运行上游测试。通过后把所选 revision 解析为不可变完整 SHA。安装源禁止使用符号 `main`。
+从当前 release/tag 或默认分支 HEAD 选 tentative candidate，记录理由，先解析完整 SHA；detached checkout 该 SHA 并核对 HEAD。再比较历史 SHA 之后的 diff，审查 manifest/layout、每个 hook 的命令、可执行文件、timeout、权限、文件/网络范围及测试定义。
+
+先读测试定义。仅在无 credential 的一次性环境中，按已审查的文件/网络范围运行不可信测试；无法隔离或需更广权限时，把准确命令/影响纳入批准，批准前不运行。安装同一已审查 SHA，禁止符号 `main`。
 
 历史案例因上游嵌套 marketplace 使用 `ref: main`，故以 local personal marketplace 直接固定 plugin source。当前必须重新核实，不能照抄旧办法。
 
@@ -41,7 +43,7 @@ git ls-remote https://github.com/DietrichGebert/ponytail.git
 - 当前 Codex 无计划所需 plugin/marketplace interface；
 - 上游无 Codex manifest 或 layout 实质变化；
 - hook 类型、命令、可执行文件、权限、文件范围、网络行为或 timeout 实质变化；
-- 上游测试失败或无法理解；
+- 上游测试失败、无法理解，或无法在已批准且适当隔离的范围运行；
 - 现有 marketplace 与拟用 source 冲突；
 - 修改与未审查的用户变更重叠；
 - 无法完成交互式 hook 信任或必要的 App/CLI 重启。
@@ -50,20 +52,20 @@ git ls-remote https://github.com/DietrichGebert/ponytail.git
 
 ### 4. 写入前批准
 
-只读调查可自主进行。修改 marketplace、安装/删除 plugin 或改变 hook 信任前，展示并取得明确批准：全部目标路径、相关现状、不覆盖的备份目标、最小 diff、上游 URL、完整 SHA、每个 hook 的命令/可执行文件/timeout/权限/副作用、rollback 及对其他 plugin 的影响。保留无关配置与用户变更。
+只读调查可自主进行。修改 marketplace、安装/删除 plugin 或改变 hook 信任前，展示并取得明确批准：全部目标路径、相关现状、不覆盖的备份目标、最小 diff、上游 URL、完整 SHA、每个 hook 的命令/可执行文件/timeout/权限/副作用、由当前 help 导出的有序 native 命令/UI 动作及预期状态/逐步中止条件、rollback 及对其他 plugin 的影响。保留无关配置与用户变更。
 
 ### 5. 安装与信任
 
-只用当前 Codex help 所示 native marketplace/plugin 命令；源固定为已审查完整 SHA。不得启用自动更新或添加 benchmark、telemetry、router。已有其他 revision 时，先披露删除/重装及 hook 重信任影响。
+只用当前 Codex help 所示 native marketplace/plugin 命令；源固定为已审查完整 SHA。不得启用自动更新或添加 benchmark、telemetry、router。已有其他 revision 时，先披露删除/重装及 hook 重信任影响；已匹配候选且验证通过则不重装。
 
 从实际安装 cache 复查 hook，再经 Codex 交互式 trust UI 仅批准已展示命令；不得自动化或绕过。历史案例只有 `SessionStart`、`SubagentStart`、`UserPromptSubmit`，各以 5 秒 timeout 运行 plugin root 内一个 Node.js 脚本；任何差异均须新审查。
 
 ### 6. 完成证据
 
 - marketplace 有效且无关项未变；Ponytail 恰好一项并 enabled；
-- source URL/完整 SHA、manifest version、cache Git HEAD 均匹配候选；
+- source URL/完整 SHA、manifest version、cache provenance/content 均匹配候选；有 Git metadata 则核对 HEAD，否则以安装 metadata 及审查/实装 manifest、hook、source hash 核对；
 - 实装 hook/脚本与批准内容一致；
-- 新 CLI 与完全重启的 App 均激活；
+- 新 CLI 与完全重启的 App 均出现该版本明确 activation marker 或可记录的 hook 证据；
 - 当前已审查版本预期的 `@ponytail`、`@ponytail-review`、`@ponytail-help` 可发现；
 - Superpowers 与其他 plugin 状态未变。
 

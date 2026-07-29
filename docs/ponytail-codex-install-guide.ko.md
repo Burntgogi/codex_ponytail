@@ -46,7 +46,7 @@ codex --version
 codex plugin --help
 codex plugin marketplace --help
 codex plugin list
-git ls-remote https://github.com/DietrichGebert/ponytail.git
+git ls-remote --symref https://github.com/DietrichGebert/ponytail.git HEAD
 ```
 
 과거 사례의 명령, 경로, manifest field, hook 수 또는 runtime이 현재에도
@@ -54,16 +54,23 @@ git ls-remote https://github.com/DietrichGebert/ponytail.git
 
 ### 2. revision 선택 전 비교
 
-현재 업스트림 동작을 과거 사례와 비교한다. 최소한 다음을 검토한다.
+현재 release/tag 또는 기본 브랜치 HEAD에서 tentative candidate를 선택하고 선택
+이유를 기록한 뒤, 먼저 변경되지 않는 전체 SHA로 해석한다. 정확히 그 SHA를
+detached 상태로 checkout하고 HEAD 일치를 확인한 다음 최소한 다음을 검토한다.
 
 - 과거 SHA 이후의 변경
 - 현재 plugin manifest와 source layout
 - 선언된 모든 hook, 명령, 실행 파일, timeout, 권한, filesystem 범위 및
   network 동작
-- 업스트림 테스트 명령과 결과
+- 업스트림 테스트 정의, 명령과 결과
 
-검토 후 선택한 revision을 변경되지 않는 전체 commit SHA로 해석한다. 설치된
-plugin의 source reference에 상징적 `main`을 기록하지 않는다.
+실행 전 테스트 정의를 먼저 검토한다. 신뢰하지 않는 테스트는 credential이 없는
+일회용 환경에서 filesystem과 network 범위를 검토한 필요에 한정하여 실행한다.
+그런 격리가 불가능하거나 더 넓은 접근이 필요하면 정확한 명령과 영향을 승인안에
+포함하고 승인 전에 실행하지 않는다.
+
+검토한 바로 그 SHA를 설치한다. 설치된 plugin의 source reference에 상징적
+`main`을 기록하지 않는다.
 
 과거 설치에서는 업스트림의 중첩 marketplace 항목이 `ref: main`을 사용했기
 때문에 local personal marketplace가 필요했다. 바깥 marketplace reference만
@@ -78,7 +85,8 @@ plugin의 source reference에 상징적 `main`을 기록하지 않는다.
 - 업스트림에 Codex plugin manifest가 없거나 layout이 크게 바뀜
 - hook 종류, 명령, 실행 파일, 권한, filesystem 범위, network 동작 또는
   timeout이 검토한 사례와 크게 다름
-- 업스트림 테스트가 실패하거나 목적을 이해할 수 없음
+- 업스트림 테스트가 실패하거나 목적을 이해할 수 없거나, 승인되고 적절히 격리된
+  범위에서 실행할 수 없음
 - 기존 marketplace 항목이 제안한 source와 충돌함
 - 편집 범위가 검토하지 않은 사용자 변경과 겹침
 - 대화형 hook 신뢰 또는 필요한 App/CLI 재시작을 완료할 수 없음
@@ -96,6 +104,8 @@ plugin의 source reference에 상징적 `main`을 기록하지 않는다.
 - 덮어쓰지 않는 backup 대상과 제안한 최소 diff
 - 업스트림 URL과 검토한 전체 SHA
 - 모든 hook 명령, 실행 파일, timeout, 권한 및 부수 효과
+- 현재 도움말에서 도출한 순서 있는 native 명령/UI 동작, 예상 상태 변화 및
+  단계별 중단 조건
 - rollback 동작과 다른 plugin에 미치는 영향
 
 이 범위에 대한 명시적 승인을 받는다. 무관한 marketplace 항목, plugin 및
@@ -109,7 +119,8 @@ plugin의 source reference에 상징적 `main`을 기록하지 않는다.
 설치 source reference에는 검토한 전체 SHA를 사용한다. 자동 업데이트,
 benchmark 도구, telemetry 또는 별도 router를 추가하지 않는다. Ponytail이
 이미 다른 revision으로 설치되어 있으면 변경 전에 제거·재설치와 hook 재신뢰
-영향을 알린다.
+영향을 알린다. 이미 검토한 candidate와 일치하고 모든 검증을 통과하면
+재설치하지 않는다.
 
 ### 6. hook을 대화형으로 검토하고 신뢰
 
@@ -129,9 +140,12 @@ group만 있었다. 각각 plugin root 아래 Node.js 스크립트 하나를 5�
 - marketplace 설정이 유효하고 무관한 항목이 그대로임
 - 의도한 Ponytail 항목이 정확히 하나이며 활성화됨
 - source URL과 전체 SHA가 검토한 candidate와 일치함
-- 설치 manifest version과 cache Git HEAD가 candidate와 일치함
+- 설치 manifest version과 cache source의 provenance/content가 candidate와
+  일치함. Git metadata가 있으면 HEAD를 사용하고, 없으면 검증된 설치 metadata와
+  검토·설치된 manifest, hook 및 source file hash를 비교함
 - 설치된 hook 집합과 스크립트가 사용자 승인 내용과 일치함
-- 새 CLI 세션과 완전히 재시작한 Codex App에서 Ponytail이 활성화됨
+- 새 CLI 세션과 완전히 재시작한 Codex App에서 검토한 버전의 명시적 activation
+  marker 또는 기록 가능한 hook 실행 증거가 나타남
 - 검토한 버전에서 예상한 `@ponytail`, `@ponytail-review`, `@ponytail-help`를
   찾을 수 있음
 - Superpowers 및 무관한 모든 plugin의 이전 상태가 유지됨

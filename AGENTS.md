@@ -13,13 +13,16 @@
 - Read-only discovery may proceed autonomously. Before changing user-level
   Codex configuration, installing or removing a plugin, or changing hook trust,
   show the exact paths, current state, backup target, proposed diff, hook scope,
-  and rollback impact; obtain explicit approval.
+  ordered current-native actions and expected transitions, per-step stops, and
+  rollback impact; obtain explicit approval.
 - Ponytail `4.8.4`, Codex CLI `0.145.0`, and commit
   `16f29800fd2681bdf24f3eb4ccffe38be3baec6b` are historical evidence only.
   Inspect current upstream and local Codex behavior before proposing a change.
-- Review the candidate diff, plugin manifest, every declared hook, and upstream
-  tests before resolving the chosen revision to a full immutable SHA. Never use
-  symbolic `main` as the installed source reference.
+- Resolve a tentative candidate to a full SHA first; verify and review a
+  detached checkout of exactly that SHA, its manifest, every hook, and test
+  definitions. Run untrusted tests only in an appropriately isolated,
+  credential-free environment or after explicit approval. Install only the same
+  reviewed SHA; never use symbolic `main` as the source reference.
 - Stop and report on changed assumptions, failed review, conflicting user
   state, or unavailable interactive trust/restart. Never silently fall back to
   the historical commit.
